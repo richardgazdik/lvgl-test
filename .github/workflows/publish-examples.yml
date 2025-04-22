@@ -61,7 +61,9 @@ jobs:
             -v /tmp/runtime:/work \
             -w /work/lvgl \
             lvglio/emscripten-sdl2:0.1.0 \
-            sh -c 'mkdir -p build && \
+            sh -c 'apt-get update && \
+                  apt-get install -y python3-venv && \
+                  mkdir -p build && \
                   cp /work/conf/lv_conf.h . && \
                   cd build && \
                   emcmake cmake .. && \
