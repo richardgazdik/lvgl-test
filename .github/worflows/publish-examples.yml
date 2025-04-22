@@ -1,0 +1,106 @@
+name: Publish Tests
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          path: "current-repo"
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Pull Docker image
+        run: docker pull lvglio/emscripten-sdl2:0.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Clone editor-online-preview repository
+        run: |
+          git clone https://github.com/lvgl-private/editor-test-preview.git /tmp/editor-preview
+
+      - name: Clone latest LVGL
+        run: |
+          # Create runtime directory
+          mkdir -p /tmp/runtime
+          # Copy resources to runtime directory
+          cp -r /tmp/editor-preview/resources/* /tmp/runtime/
+          # Clone LVGL PR
+          git clone https://github.com/lvgl/lvgl.git /tmp/runtime/lvgl
+
+      - name: Prepare preview files
+        run: |
+          mkdir -p /tmp/editor-preview/project
+          cp -r current-repo/* /tmp/editor-preview/project/
+          rm -rf /tmp/editor-preview/project/resources
+
+      - name: Generate manifest file
+        run: |
+          cd /tmp/editor-preview
+          node generateProjectManifest.js ./project/ project/
+
+      - name: Build LVGL library
+        run: |
+          docker run --rm \
+            -v /tmp/runtime:/work \
+            -w /work/lvgl \
+            lvglio/emscripten-sdl2:0.1.0 \
+            sh -c 'mkdir -p build && \
+                  cp /work/conf/lv_conf.h . && \
+                  cd build && \
+                  emcmake cmake .. && \
+                  emmake make -j8 && \
+                  mkdir -p /work/lib && \
+                  echo "Contents of current directory:" && \
+                  ls -la && \
+                  echo "Contents of lib directory:" && \
+                  ls -la lib && \
+                  cp lib/liblvgl.a /work/lib/ && \
+                  echo "Contents of destination directory:" && \
+                  ls -la /work/lib'
+
+      - name: Build runtime
+        run: |
+          # Create build directory
+          mkdir -p /tmp/build
+
+          # Run CMake in Docker
+          docker run --rm \
+            -v /tmp/runtime:/work \
+            -v /tmp/editor-preview/resources:/output \
+            -v /tmp/build:/build \
+            -v /tmp/editor-preview/project/examples:/user_src \
+            -w /build \
+            lvglio/emscripten-sdl2:0.1.0 \
+            sh -c 'emcmake cmake -DPROJECT_NAME=lved-runtime \
+              -DOUTPUT_DIR=/output \
+              -DLVGL_SRC_DIR=/work/lvgl \
+              -DLVGL_CONF_DIR=/work/conf \
+              -DUSER_SRC_DIR=/user_src \
+              -DCMAKE_C_FLAGS="-I/user_src" \
+              /work && \
+              emmake make -j8'
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: /tmp/editor-preview
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
