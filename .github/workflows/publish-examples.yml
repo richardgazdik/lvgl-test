@@ -66,16 +66,10 @@ jobs:
                   mkdir -p build && \
                   cp /work/conf/lv_conf.h . && \
                   cd build && \
-                  emcmake cmake .. && \
+                  emcmake cmake .. -DCMAKE_TOOLCHAIN_FILE=/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_CROSSCOMPILING_EMULATOR=/emsdk/node/20.18.0_64bit/bin/node && \
                   emmake make -j8 && \
                   mkdir -p /work/lib && \
-                  echo "Contents of current directory:" && \
-                  ls -la && \
-                  echo "Contents of lib directory:" && \
-                  ls -la lib && \
-                  cp lib/liblvgl.a /work/lib/ && \
-                  echo "Contents of destination directory:" && \
-                  ls -la /work/lib'
+                  cp lib/liblvgl.a /work/lib/'
 
       - name: Build runtime
         run: |
