@@ -33,26 +33,26 @@ jobs:
 
       - name: Clone editor-online-preview repository
         run: |
-          git clone https://github.com/lvgl-private/editor-online-preview.git /tmp/editor-preview
+          git clone https://github.com/lvgl-private/editor-online-preview.git /tmp/online-preview
 
       - name: Clone latest LVGL
         run: |
           # Create runtime directory
           mkdir -p /tmp/runtime
           # Copy resources to runtime directory
-          cp -r /tmp/editor-preview/resources/* /tmp/runtime/
+          cp -r /tmp/online-preview/runtime/* /tmp/runtime/
           # Clone LVGL PR
           git clone https://github.com/lvgl/lvgl.git /tmp/runtime/lvgl
 
       - name: Prepare preview files
         run: |
-          mkdir -p /tmp/editor-preview/project
-          cp -r current-repo/* /tmp/editor-preview/project/
-          rm -rf /tmp/editor-preview/project/resources
+          mkdir -p /tmp/online-preview/project
+          cp -r current-repo/* /tmp/online-preview/project/
+          rm -rf /tmp/online-preview/project/runtime
 
       - name: Generate manifest file
         run: |
-          cd /tmp/editor-preview
+          cd /tmp/online-preview
           node generateProjectManifest.js ./project/ project/
 
       - name: Build LVGL library
@@ -85,9 +85,9 @@ jobs:
           # Run CMake in Docker
           docker run --rm \
             -v /tmp/runtime:/work \
-            -v /tmp/editor-preview/resources:/output \
+            -v /tmp/online-preview/resources:/output \
             -v /tmp/build:/build \
-            -v /tmp/editor-preview/project/examples:/user_src \
+            -v /tmp/online-preview/project/examples:/user_src \
             -w /build \
             lvglio/emscripten-sdl2:0.1.0 \
             sh -c 'emcmake cmake -DPROJECT_NAME=lved-runtime \
@@ -102,7 +102,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: /tmp/editor-preview
+          path: /tmp/online-preview
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
