@@ -76,7 +76,7 @@ jobs:
           # Run CMake in Docker
           docker run --rm \
             -v /tmp/runtime:/work \
-            -v /tmp/online-preview/resources:/output \
+            -v /tmp/online-preview/runtime:/output \
             -v /tmp/build:/build \
             -v /tmp/online-preview/project/examples:/user_src \
             -w /build \
