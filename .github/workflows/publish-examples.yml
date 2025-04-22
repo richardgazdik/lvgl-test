@@ -59,17 +59,14 @@ jobs:
         run: |
           docker run --rm \
             -v /tmp/runtime:/work \
-            -w /work/lvgl \
+            -w /tmp \
             lvglio/emscripten-sdl2:0.1.0 \
             sh -c 'apt-get update && \
                   apt-get install -y python3-venv && \
-                  mkdir -p build && \
-                  cp /work/conf/lv_conf.h . && \
-                  cd build && \
-                  emcmake cmake .. -DCMAKE_TOOLCHAIN_FILE=/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_CROSSCOMPILING_EMULATOR=/emsdk/node/20.18.0_64bit/bin/node && \
-                  emmake make -j8 && \
-                  mkdir -p /work/lib && \
-                  cp lib/liblvgl.a /work/lib/'
+                  cd /work/lib && \
+                  mkdir -p /tmp/build && cd /tmp/build && \
+                  emcmake cmake /work/lib && \
+                  emmake make -j$(nproc)'
 
       - name: Build runtime
         run: |
